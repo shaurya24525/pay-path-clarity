@@ -334,6 +334,27 @@ function ReplayStage({
         <p className="text-xs text-white/70">{transaction.statusMessage}</p>
       </div>
 
+      {transaction.findings?.length ? (
+        <div className="mt-5 rounded-2xl border border-black/5 bg-white/55 p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand/40">
+            What we found on this page
+          </p>
+          <ul className="mt-3 space-y-2">
+            {transaction.findings.map((f, i) => (
+              <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-brand/70">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand/30" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          {transaction.sourceUrl && (
+            <p className="mt-3 truncate text-[11px] text-brand/35">
+              Source: {transaction.sourceUrl}
+            </p>
+          )}
+        </div>
+      ) : null}
+
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
         {(
           [
