@@ -74,9 +74,95 @@ function htmlToText(html: string) {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    .replace(/&#x?[0-9a-f]+;/gi, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 14000);
+    .trim();
+}
+
+// Words that mark the parts of a shopping page that actually matter here.
+const MONEY_KEYWORDS = [
+  "₹",
+  "rs.",
+  "price",
+  "mrp",
+  "emi",
+  "no cost emi",
+  "pay later",
+  "paylater",
+  "installment",
+  "instalment",
+  "per month",
+  "/month",
+  "months",
+  "downpayment",
+  "down payment",
+  "interest",
+  "processing fee",
+  "convenience fee",
+  "delivery charge",
+  "cashback",
+  "refund",
+  "return policy",
+  "replacement",
+  "cancellation",
+  "warranty",
+  "simpl",
+  "lazypay",
+  "bajaj",
+  "amazon pay",
+  "cred",
+  "zest",
+  "snapmint",
+  "klarna",
+  "afterpay",
+  "affirm",
+];
+
+// Pull the structured offer data stores publish for search engines.
+function extractStructured(html: string) {
+  const out: string[] = [];
+  const metas = html.matchAll(
+    /<meta[^>]+(?:property|name)=["'](og:title|og:description|description|twitter:description)["'][^>]*content=["']([^"']{0,400})["']/gi,
+  );
+  for (const m of metas) out.push(`${m[1]}: ${m[2]}`);
+  const lds = html.matchAll(
+    /<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi,
+  );
+  for (const m of lds) {
+    const body = (m[1] ?? "").replace(/\s+/g, " ").trim();
+    if (/price|offer|product/i.test(body)) out.push(body.slice(0, 2500));
+  }
+  return out.join("\n").slice(0, 6000);
+}
+
+// Keep the beginning of the page plus every window around a money/terms word,
+// so long store pages don't push the price out of the model's view.
+function extractRelevant(text: string, budget = 16000) {
+  const head = text.slice(0, 2500);
+  const low = text.toLowerCase();
+  const spans: [number, number][] = [];
+  for (const kw of MONEY_KEYWORDS) {
+    let i = low.indexOf(kw);
+    let hits = 0;
+    while (i !== -1 && hits < 6) {
+      spans.push([Math.max(0, i - 180), Math.min(text.length, i + 320)]);
+      hits++;
+      i = low.indexOf(kw, i + kw.length);
+    }
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const s of spans) {
+    const last = merged[merged.length - 1];
+    if (last && s[0] <= last[1] + 60) last[1] = Math.max(last[1], s[1]);
+    else merged.push([s[0], s[1]]);
+  }
+  let body = "";
+  for (const [a, b] of merged) {
+    if (body.length + (b - a) > budget - head.length) break;
+    body += ` … ${text.slice(a, b)}`;
+  }
+  return `${head}\n\nRelevant excerpts:${body}`.slice(0, budget);
 }
 
 const BLOCK_MARKERS = [
