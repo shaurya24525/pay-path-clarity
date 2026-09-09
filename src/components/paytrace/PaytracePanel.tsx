@@ -298,6 +298,12 @@ function ReplayStage({
       </div>
 
       <div className="mt-6 space-y-1">
+        {transaction.legs.length === 0 && (
+          <p className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-5 py-6 text-sm text-brand/60">
+            No payment schedule was published on this page, so there is nothing to
+            replay. Ask the seller for the full payment plan before you pay.
+          </p>
+        )}
         {transaction.legs.map((leg, i) => (
           <div key={`${leg.label}-${i}`}>
             {i > 0 && (
