@@ -173,7 +173,58 @@ const BLOCK_MARKERS = [
   "access denied",
   "just a moment",
   "captcha",
+  "something went wrong! please try again later",
 ];
+
+// Mobile Chrome gets served the full, cheap HTML on Amazon.in and Flipkart;
+// the desktop page is often a JS shell with no prices in it.
+const AGENTS = [
+  "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+];
+
+async function fetchPage(url: string) {
+  let lastNote = "The page could not be opened from our servers.";
+  for (const ua of AGENTS) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "user-agent": ua,
+          accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-IN,en;q=0.9",
+        },
+      });
+      if (!res.ok) {
+        lastNote = `The page could not be opened (HTTP ${res.status}).`;
+        continue;
+      }
+      const html = await res.text();
+      const title =
+        html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? "";
+      const text = htmlToText(html);
+      const low = text.toLowerCase();
+      const usable =
+        text.length > 1500 &&
+        !BLOCK_MARKERS.some((m) => low.includes(m)) &&
+        /₹|rs\.?\s?\d|price/i.test(text);
+      if (!usable) {
+        lastNote =
+          "This store served a page without any product or price details, so the report uses the link and title only.";
+        continue;
+      }
+      return {
+        title,
+        structured: extractStructured(html),
+        text: extractRelevant(text),
+        note: "Read the live page, including its price and payment sections.",
+      };
+    } catch {
+      lastNote = "The page could not be opened from our servers.";
+    }
+  }
+  return { title: "", structured: "", text: "", note: lastNote };
+}
 
 export const scanLink = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
