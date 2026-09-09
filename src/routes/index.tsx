@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import headphones from "@/assets/headphones.jpg";
 import { PaytracePanel } from "@/components/paytrace/PaytracePanel";
+import { LinkScanner } from "@/components/paytrace/LinkScanner";
 import {
   formatINR,
   headphonesTransaction,
@@ -176,6 +177,10 @@ function Checkout() {
               </button>
             )}
           </div>
+        </section>
+
+        <section className="mt-10">
+          <LinkScanner onReport={setActive} />
         </section>
 
         <section className="mt-10 grid gap-6 md:grid-cols-3">
