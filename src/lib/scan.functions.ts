@@ -245,7 +245,9 @@ export const scanLink = createServerFn({ method: "POST" })
       let readNote = "";
 
       if (isUrl) {
+        console.log("[scan] fetching", url);
         const page = await fetchPage(url);
+        console.log("[scan] fetched", page.text.length, page.note);
         pageTitle = page.title;
         structured = page.structured;
         pageText = page.text;
@@ -281,6 +283,7 @@ export const scanLink = createServerFn({ method: "POST" })
         .filter(Boolean)
         .join("\n");
 
+      console.log("[scan] calling ai", prompt.length);
       const res = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
@@ -327,6 +330,7 @@ export const scanLink = createServerFn({ method: "POST" })
       const raw = payload.choices?.[0]?.message?.content;
       if (!raw) throw new Error("The scan returned no report. Please try again.");
 
+      console.log("[scan] ai done");
       const p = JSON.parse(raw) as Record<string, unknown>;
 
       const legs = Array.isArray(p["legs"])
