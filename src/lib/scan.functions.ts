@@ -185,7 +185,8 @@ const AGENTS = [
 
 async function fetchPage(url: string) {
   let lastNote = "The page could not be opened from our servers.";
-  for (const ua of AGENTS) {
+  // Two passes: busy stores (HTTP 429/5xx) usually answer on a second try.
+  for (const ua of [...AGENTS, ...AGENTS]) {
     try {
       const res = await fetch(url, {
         headers: {
@@ -196,7 +197,10 @@ async function fetchPage(url: string) {
         },
       });
       if (!res.ok) {
-        lastNote = `The page could not be opened (HTTP ${res.status}).`;
+        lastNote =
+          res.status === 429 || res.status >= 500
+            ? "The store was busy and did not answer. Please try the scan again in a moment."
+            : `The page could not be opened (HTTP ${res.status}).`;
         continue;
       }
       const html = await res.text();
