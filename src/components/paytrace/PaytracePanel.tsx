@@ -354,6 +354,20 @@ function ReplayStage({
         <p className="text-xs text-white/70">{transaction.statusMessage}</p>
       </div>
 
+      {transaction.summary ? (
+        <div className="mt-5 rounded-2xl border border-black/5 bg-white/70 p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand/40">
+            In plain English
+          </p>
+          <p className="mt-2 text-[15px] font-medium leading-relaxed text-brand/85">
+            {transaction.summary}
+          </p>
+          {transaction.readNote && (
+            <p className="mt-2 text-[11px] text-brand/40">{transaction.readNote}</p>
+          )}
+        </div>
+      ) : null}
+
       {transaction.findings?.length ? (
         <div className="mt-5 rounded-2xl border border-black/5 bg-white/55 p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand/40">
