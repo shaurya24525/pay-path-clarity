@@ -58,11 +58,13 @@ export function LinkScanner({
         Scan any checkout link
       </p>
       <h3 className="mt-2 text-lg font-bold tracking-tight">
-        Paste a link. Get a trust report.
+        Paste a link — or the product details. Get a trust report.
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-brand/60">
-        PAYTRACE reads the page and reports the provider, the real total, every
-        future payment and anything missing.
+        PAYTRACE reads it and reports, in plain English, the provider, the real
+        total, every future payment and anything missing. Some big stores block
+        automated reading — paste the product title and price instead and it
+        still works.
       </p>
 
       <form onSubmit={submit} className="mt-4 flex flex-col gap-2 sm:flex-row">
