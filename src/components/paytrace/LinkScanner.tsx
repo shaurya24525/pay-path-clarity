@@ -70,11 +70,10 @@ export function LinkScanner({
       <form onSubmit={submit} className="mt-4 flex flex-col gap-2 sm:flex-row">
         <input
           type="text"
-          inputMode="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://store.example.com/checkout"
-          aria-label="Checkout or product link"
+          placeholder="https://store.example.com/checkout  — or paste the product title & price"
+          aria-label="Checkout link or product details"
           className="min-w-0 flex-1 rounded-xl border border-black/8 bg-white/70 px-4 py-2.5 text-sm text-brand outline-none placeholder:text-brand/35 focus:border-accent-clear/50"
         />
         <button
