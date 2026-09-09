@@ -59,7 +59,11 @@ export function PaytracePanel({
             <VerifyStage
               transaction={transaction}
               onDone={() =>
-                setStage(transaction.status === "PAUSE" ? "breaker" : "replay")
+                setStage(
+                  transaction.status === "PAUSE" && transaction.totalPayable > 0
+                    ? "breaker"
+                    : "replay",
+                )
               }
             />
           )}

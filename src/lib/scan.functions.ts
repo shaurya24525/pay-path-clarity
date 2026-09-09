@@ -111,7 +111,8 @@ export const scanLink = createServerFn({ method: "POST" })
       "- Amounts are numbers in INR (no symbols).",
       "- legs must include one entry with today=true (amount paid at checkout) plus each future installment with a date-ish label.",
       "- totalPayable is the sum of all legs. extraAmount = totalPayable - purchaseAmount (0 if none).",
-      "- status: CLEAR if nothing critical is missing, REVIEW if information is unclear, PAUSE if the headline price does not match the total payable or fees/refund terms are missing.",
+      "- status: CLEAR if nothing critical is missing, REVIEW if information is unclear or the page is not an actual checkout, PAUSE only when real amounts exist AND the headline price does not match the total payable.",
+      "- If the page has no concrete prices or payment plan, use status REVIEW, headlinePrice \"Not stated\", 0 amounts, an empty legs array, and say plainly in findings that no payment terms were published on this page.",
       "- findings: 3-5 short, factual, plain-English observations. Never say a payment is safe.",
     ]
       .filter(Boolean)
