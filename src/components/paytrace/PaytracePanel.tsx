@@ -59,7 +59,11 @@ export function PaytracePanel({
             <VerifyStage
               transaction={transaction}
               onDone={() =>
-                setStage(transaction.status === "PAUSE" ? "breaker" : "replay")
+                setStage(
+                  transaction.status === "PAUSE" && transaction.totalPayable > 0
+                    ? "breaker"
+                    : "replay",
+                )
               }
             />
           )}
@@ -151,15 +155,23 @@ function VerifyStage({
         })}
       </ul>
 
-      <div className="mt-5 flex items-center justify-between rounded-2xl bg-accent-clear/8 px-5 py-4">
+      <div
+        className={`mt-5 flex items-center justify-between rounded-2xl px-5 py-4 ${
+          transaction.provider.verified ? "bg-accent-clear/8" : "bg-amber/10"
+        }`}
+      >
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand/40">
             Provider
           </p>
           <p className="text-base font-bold">{transaction.provider.name}</p>
         </div>
-        <span className="rounded-full bg-accent-clear px-3 py-1 text-[11px] font-bold text-white">
-          VERIFIED
+        <span
+          className={`rounded-full px-3 py-1 text-[11px] font-bold text-white ${
+            transaction.provider.verified ? "bg-accent-clear" : "bg-amber"
+          }`}
+        >
+          {transaction.provider.verified ? "IDENTIFIED" : "NOT IDENTIFIED"}
         </span>
       </div>
       <p className="mt-3 text-[11px] text-brand/40">
@@ -286,6 +298,12 @@ function ReplayStage({
       </div>
 
       <div className="mt-6 space-y-1">
+        {transaction.legs.length === 0 && (
+          <p className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-5 py-6 text-sm text-brand/60">
+            No payment schedule was published on this page, so there is nothing to
+            replay. Ask the seller for the full payment plan before you pay.
+          </p>
+        )}
         {transaction.legs.map((leg, i) => (
           <div key={`${leg.label}-${i}`}>
             {i > 0 && (
@@ -328,11 +346,34 @@ function ReplayStage({
             Total payable
           </p>
           <p className="font-mono text-3xl font-bold">
-            {formatINR(transaction.totalPayable)}
+            {transaction.totalPayable > 0
+              ? formatINR(transaction.totalPayable)
+              : "Not stated"}
           </p>
         </div>
         <p className="text-xs text-white/70">{transaction.statusMessage}</p>
       </div>
+
+      {transaction.findings?.length ? (
+        <div className="mt-5 rounded-2xl border border-black/5 bg-white/55 p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand/40">
+            What we found on this page
+          </p>
+          <ul className="mt-3 space-y-2">
+            {transaction.findings.map((f, i) => (
+              <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-brand/70">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand/30" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          {transaction.sourceUrl && (
+            <p className="mt-3 truncate text-[11px] text-brand/35">
+              Source: {transaction.sourceUrl}
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
         {(

@@ -32,6 +32,8 @@ export interface TransactionPreview {
   provider: Provider;
   feesDisclosed: boolean;
   refundInfo: boolean;
+  findings?: string[];
+  sourceUrl?: string;
 }
 
 export const STATUS_COPY: Record<TrustStatus, string> = {
