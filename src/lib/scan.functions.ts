@@ -74,9 +74,95 @@ function htmlToText(html: string) {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    .replace(/&#x?[0-9a-f]+;/gi, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 14000);
+    .trim();
+}
+
+// Words that mark the parts of a shopping page that actually matter here.
+const MONEY_KEYWORDS = [
+  "₹",
+  "rs.",
+  "price",
+  "mrp",
+  "emi",
+  "no cost emi",
+  "pay later",
+  "paylater",
+  "installment",
+  "instalment",
+  "per month",
+  "/month",
+  "months",
+  "downpayment",
+  "down payment",
+  "interest",
+  "processing fee",
+  "convenience fee",
+  "delivery charge",
+  "cashback",
+  "refund",
+  "return policy",
+  "replacement",
+  "cancellation",
+  "warranty",
+  "simpl",
+  "lazypay",
+  "bajaj",
+  "amazon pay",
+  "cred",
+  "zest",
+  "snapmint",
+  "klarna",
+  "afterpay",
+  "affirm",
+];
+
+// Pull the structured offer data stores publish for search engines.
+function extractStructured(html: string) {
+  const out: string[] = [];
+  const metas = html.matchAll(
+    /<meta[^>]+(?:property|name)=["'](og:title|og:description|description|twitter:description)["'][^>]*content=["']([^"']{0,400})["']/gi,
+  );
+  for (const m of metas) out.push(`${m[1]}: ${m[2]}`);
+  const lds = html.matchAll(
+    /<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi,
+  );
+  for (const m of lds) {
+    const body = (m[1] ?? "").replace(/\s+/g, " ").trim();
+    if (/price|offer|product/i.test(body)) out.push(body.slice(0, 2500));
+  }
+  return out.join("\n").slice(0, 6000);
+}
+
+// Keep the beginning of the page plus every window around a money/terms word,
+// so long store pages don't push the price out of the model's view.
+function extractRelevant(text: string, budget = 16000) {
+  const head = text.slice(0, 2500);
+  const low = text.toLowerCase();
+  const spans: [number, number][] = [];
+  for (const kw of MONEY_KEYWORDS) {
+    let i = low.indexOf(kw);
+    let hits = 0;
+    while (i !== -1 && hits < 6) {
+      spans.push([Math.max(0, i - 180), Math.min(text.length, i + 320)]);
+      hits++;
+      i = low.indexOf(kw, i + kw.length);
+    }
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const s of spans) {
+    const last = merged[merged.length - 1];
+    if (last && s[0] <= last[1] + 60) last[1] = Math.max(last[1], s[1]);
+    else merged.push([s[0], s[1]]);
+  }
+  let body = "";
+  for (const [a, b] of merged) {
+    if (body.length + (b - a) > budget - head.length) break;
+    body += ` … ${text.slice(a, b)}`;
+  }
+  return `${head}\n\nRelevant excerpts:${body}`.slice(0, budget);
 }
 
 const BLOCK_MARKERS = [
@@ -87,7 +173,69 @@ const BLOCK_MARKERS = [
   "access denied",
   "just a moment",
   "captcha",
+  "something went wrong! please try again later",
 ];
+
+// Mobile Chrome gets served the full, cheap HTML on Amazon.in and Flipkart;
+// the desktop page is often a JS shell with no prices in it.
+const AGENTS = [
+  "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+];
+
+async function fetchPage(url: string) {
+  let lastNote = "The page could not be opened from our servers.";
+  // Two passes: busy stores (HTTP 429/5xx) usually answer on a second try.
+  for (const ua of [...AGENTS, ...AGENTS]) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "user-agent": ua,
+          accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-IN,en;q=0.9",
+        },
+      });
+      if (!res.ok) {
+        lastNote =
+          res.status === 429 || res.status >= 500
+            ? "The store was busy and did not answer. Please try the scan again in a moment."
+            : `The page could not be opened (HTTP ${res.status}).`;
+        continue;
+      }
+      const html = await res.text();
+      const title =
+        html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? "";
+      const text = htmlToText(html);
+      const low = text.toLowerCase();
+      const usable =
+        text.length > 1500 &&
+        !BLOCK_MARKERS.some((m) => low.includes(m)) &&
+        /₹|rs\.?\s?\d|price/i.test(text);
+      if (!usable) {
+        lastNote =
+          "This store served a page without any product or price details, so the report uses the link and title only.";
+        continue;
+      }
+      // Some big stores hide the buy box from automated visitors and show
+      // "currently unavailable" instead of the real price.
+      const hidden =
+        /currently unavailable|temporarily out of stock/i.test(text) &&
+        !/a-price-whole|pricetopay|"price"\s*:/i.test(html);
+      return {
+        title,
+        structured: extractStructured(html),
+        text: extractRelevant(text),
+        note: hidden
+          ? "This store showed us a limited version of the page without its buy box, so the price may be missing. Paste the product title and price for a full report."
+          : "Read the live page, including its price and payment sections.",
+      };
+    } catch {
+      lastNote = "The page could not be opened from our servers.";
+    }
+  }
+  return { title: "", structured: "", text: "", note: lastNote };
+}
 
 export const scanLink = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
@@ -104,41 +252,17 @@ export const scanLink = createServerFn({ method: "POST" })
 
       let pageText = "";
       let pageTitle = "";
+      let structured = "";
       let readNote = "";
 
       if (isUrl) {
-        try {
-          const res = await fetch(url, {
-            headers: {
-              "user-agent":
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-              accept:
-                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-              "accept-language": "en-IN,en;q=0.9",
-            },
-          });
-          if (res.ok) {
-            const html = await res.text();
-            pageTitle =
-              html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? "";
-            const text = htmlToText(html);
-            const low = text.toLowerCase();
-            const blocked =
-              text.length < 1200 || BLOCK_MARKERS.some((m) => low.includes(m));
-            if (blocked) {
-              readNote =
-                "This store blocked automated reading, so the report is based on the page title and link only.";
-              pageText = "";
-            } else {
-              pageText = text;
-              readNote = "Read the live page.";
-            }
-          } else {
-            readNote = `The page could not be opened (HTTP ${res.status}).`;
-          }
-        } catch {
-          readNote = "The page could not be opened from our servers.";
-        }
+        console.log("[scan] fetching", url);
+        const page = await fetchPage(url);
+        console.log("[scan] fetched", page.text.length, page.note);
+        pageTitle = page.title;
+        structured = page.structured;
+        pageText = page.text;
+        readNote = page.note;
       } else {
         readNote = "Analysed the details you pasted.";
       }
@@ -147,14 +271,18 @@ export const scanLink = createServerFn({ method: "POST" })
         `You are producing a plain-English "Pay Later" transparency report for an ordinary shopper.`,
         isUrl ? `URL: ${url}` : "",
         pageTitle ? `Page title: ${pageTitle}` : "",
+        structured ? `Structured product data from the page:\n${structured}` : "",
         pageText
-          ? `Page content:\n${pageText}`
+          ? `Page content (head of page plus every excerpt containing price, EMI, Pay Later, fee, refund or return wording):\n${pageText}`
           : isUrl
             ? `The full page content could not be read (the store blocked us). Use the URL and page title only. Do NOT invent prices, providers, installments or dates — leave them as "Not stated" / 0 / empty and say so plainly.`
             : `The user pasted this product/checkout description instead of a link:\n${input}\nUse only what it states. Do NOT invent prices or payment plans that are not written here.`,
         "",
         "Rules:",
         "- Amounts are numbers in INR (no symbols). Never guess an amount that is not stated.",
+        "- Indian stores (Amazon.in, Flipkart and similar) publish the selling price, MRP, delivery/fees and EMI or Pay Later offers such as No Cost EMI, Amazon Pay Later, Flipkart Pay Later, Simpl, LazyPay, Bajaj Finserv. Read those carefully and report the real monthly amount, the number of months and the resulting total.",
+        "- If the page shows a price but no Pay Later plan, still fill purchaseAmount and headlinePrice from the price, keep legs empty, and say the store publishes no instalment terms on this page.",
+        "- If an EMI plan is shown as 'from ₹X/month', treat X as indicative: build legs only if the number of months is stated, otherwise keep legs empty and note the plan is advertised but not fully specified.",
         "- summary: 1-2 short friendly sentences a non-expert instantly understands: what this is and the single most important thing to know before paying.",
         "- legs: only real, stated payments. One entry with today=true, plus each future installment with a date-ish label. Empty array if no plan is published.",
         "- totalPayable is the sum of all legs. extraAmount = totalPayable - purchaseAmount (0 if none).",
@@ -166,6 +294,7 @@ export const scanLink = createServerFn({ method: "POST" })
         .filter(Boolean)
         .join("\n");
 
+      console.log("[scan] calling ai", prompt.length);
       const res = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
@@ -212,6 +341,7 @@ export const scanLink = createServerFn({ method: "POST" })
       const raw = payload.choices?.[0]?.message?.content;
       if (!raw) throw new Error("The scan returned no report. Please try again.");
 
+      console.log("[scan] ai done");
       const p = JSON.parse(raw) as Record<string, unknown>;
 
       const legs = Array.isArray(p["legs"])
