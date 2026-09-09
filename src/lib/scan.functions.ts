@@ -171,9 +171,9 @@ export const scanLink = createServerFn({ method: "POST" })
       paidToday: Number(p["paidToday"] ?? 0),
       legs,
       totalPayable: Number(p["totalPayable"] ?? 0),
-      status: (p["status"] as TransactionPreview["status"]) ?? "REVIEW",
+      status: (p["status"] as TransactionPreview["status"] | undefined) ?? "REVIEW",
       statusMessage: String(p["statusMessage"] ?? ""),
-      extraAmount: Number(p["extraAmount"] ?? 0) || undefined,
+      ...(extra ? { extraAmount: extra } : {}),
       provider: {
         name: String(p["providerName"] ?? "Unidentified provider"),
         verified: Boolean(p["providerName"]),
@@ -183,7 +183,7 @@ export const scanLink = createServerFn({ method: "POST" })
       },
       feesDisclosed: Boolean(p["feesDisclosed"]),
       refundInfo: Boolean(p["refundInfo"]),
-      findings: (p["findings"] as string[]) ?? [],
+      findings: Array.isArray(p["findings"]) ? (p["findings"] as string[]) : [],
       sourceUrl: url,
     };
 
