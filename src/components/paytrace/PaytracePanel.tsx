@@ -155,15 +155,23 @@ function VerifyStage({
         })}
       </ul>
 
-      <div className="mt-5 flex items-center justify-between rounded-2xl bg-accent-clear/8 px-5 py-4">
+      <div
+        className={`mt-5 flex items-center justify-between rounded-2xl px-5 py-4 ${
+          transaction.provider.verified ? "bg-accent-clear/8" : "bg-amber/10"
+        }`}
+      >
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand/40">
             Provider
           </p>
           <p className="text-base font-bold">{transaction.provider.name}</p>
         </div>
-        <span className="rounded-full bg-accent-clear px-3 py-1 text-[11px] font-bold text-white">
-          VERIFIED
+        <span
+          className={`rounded-full px-3 py-1 text-[11px] font-bold text-white ${
+            transaction.provider.verified ? "bg-accent-clear" : "bg-amber"
+          }`}
+        >
+          {transaction.provider.verified ? "IDENTIFIED" : "NOT IDENTIFIED"}
         </span>
       </div>
       <p className="mt-3 text-[11px] text-brand/40">
