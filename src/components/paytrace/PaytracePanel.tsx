@@ -346,7 +346,9 @@ function ReplayStage({
             Total payable
           </p>
           <p className="font-mono text-3xl font-bold">
-            {formatINR(transaction.totalPayable)}
+            {transaction.totalPayable > 0
+              ? formatINR(transaction.totalPayable)
+              : "Not stated"}
           </p>
         </div>
         <p className="text-xs text-white/70">{transaction.statusMessage}</p>
