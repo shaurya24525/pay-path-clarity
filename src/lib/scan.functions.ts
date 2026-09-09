@@ -156,11 +156,12 @@ export const scanLink = createServerFn({ method: "POST" })
     const raw = payload.choices?.[0]?.message?.content;
     if (!raw) throw new Error("The scan returned no report. Please try again.");
 
-    const p = JSON.parse(raw) as Record<string, never> & {
-      [k: string]: unknown;
-    };
+    const p = JSON.parse(raw) as Record<string, unknown>;
 
-    const legs = (p["legs"] as TransactionPreview["legs"]) ?? [];
+    const legs = Array.isArray(p["legs"])
+      ? (p["legs"] as TransactionPreview["legs"])
+      : [];
+    const extra = Number(p["extraAmount"] ?? 0);
     const report: TransactionPreview & { findings: string[] } = {
       id: `PT-${Math.floor(100000 + Math.random() * 899999)}`,
       merchant: String(p["merchant"] ?? "Unknown merchant"),
