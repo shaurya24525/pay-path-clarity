@@ -217,11 +217,18 @@ async function fetchPage(url: string) {
           "This store served a page without any product or price details, so the report uses the link and title only.";
         continue;
       }
+      // Some big stores hide the buy box from automated visitors and show
+      // "currently unavailable" instead of the real price.
+      const hidden =
+        /currently unavailable|temporarily out of stock/i.test(text) &&
+        !/a-price-whole|pricetopay|"price"\s*:/i.test(html);
       return {
         title,
         structured: extractStructured(html),
         text: extractRelevant(text),
-        note: "Read the live page, including its price and payment sections.",
+        note: hidden
+          ? "This store showed us a limited version of the page without its buy box, so the price may be missing. Paste the product title and price for a full report."
+          : "Read the live page, including its price and payment sections.",
       };
     } catch {
       lastNote = "The page could not be opened from our servers.";
