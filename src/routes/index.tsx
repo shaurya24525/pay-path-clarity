@@ -7,7 +7,7 @@ import { LinkScanner } from "@/components/paytrace/LinkScanner";
 import {
   formatINR,
   headphonesTransaction,
-  trustBreakerTransaction,
+  
   type TransactionPreview,
 } from "@/lib/paytrace-data";
 

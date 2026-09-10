@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import paytraceLogo from "@/assets/paytrace-logo.png";
 import { intelligenceData } from "@/lib/paytrace-data";
 
 export const Route = createFileRoute("/intelligence")({
