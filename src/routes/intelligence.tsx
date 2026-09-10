@@ -39,9 +39,14 @@ function Intelligence() {
     <div className="relative min-h-screen text-brand antialiased">
       <header className="relative z-20 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6">
         <Link to="/" className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-xl bg-brand text-white shadow-sm">
-            <span className="font-mono text-sm font-bold">Pt</span>
-          </div>
+          <img
+            src={paytraceLogo}
+            alt="PAYTRACE logo"
+            width={816}
+            height={816}
+            loading="lazy"
+            className="size-9 rounded-xl bg-white/70 p-1 shadow-sm"
+          />
           <div className="leading-tight">
             <p className="text-[15px] font-bold tracking-tight">PAYTRACE</p>
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-brand/40">

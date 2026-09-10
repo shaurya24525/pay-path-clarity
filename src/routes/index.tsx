@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import headphones from "@/assets/headphones.jpg";
+import paytraceLogo from "@/assets/paytrace-logo.png";
 import { PaytracePanel } from "@/components/paytrace/PaytracePanel";
 import { LinkScanner } from "@/components/paytrace/LinkScanner";
 import {
@@ -52,9 +53,13 @@ function Checkout() {
 
       <header className="relative z-20 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6">
         <div className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-xl bg-brand text-white shadow-sm">
-            <span className="font-mono text-sm font-bold">Pt</span>
-          </div>
+          <img
+            src={paytraceLogo}
+            alt="PAYTRACE logo"
+            width={816}
+            height={816}
+            className="size-9 rounded-xl bg-white/70 p-1 shadow-sm"
+          />
           <div className="leading-tight">
             <p className="text-[15px] font-bold tracking-tight">PAYTRACE</p>
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-brand/40">
@@ -181,43 +186,6 @@ function Checkout() {
 
         <section className="mt-10">
           <LinkScanner onReport={setActive} />
-        </section>
-
-        <section className="mt-10 grid gap-6 md:grid-cols-3">
-          <div className="rise glass rounded-3xl p-6 shadow-lg shadow-orange-900/5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand/50">
-              The flow
-            </p>
-            <h3 className="mt-2 text-lg font-bold tracking-tight">
-              Verify → Understand → Simulate → Decide → Record
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-brand/60">
-              PAYTRACE never says a payment is safe. It shows exactly what will
-              happen, and leaves the decision to you.
-            </p>
-          </div>
-
-          <div
-            className="rise rounded-3xl p-6 text-white shadow-2xl shadow-red-900/20 md:col-span-2"
-            style={{ background: "linear-gradient(180deg,#7f1d1d,#450a0a)" }}
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
-              Second demo transaction · Trust Breaker
-            </p>
-            <h3 className="mt-2 text-lg font-bold tracking-tight">
-              StreamKit Pro — advertised at ₹499/month
-            </h3>
-            <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/70">
-              Run this one through PAYTRACE to see what happens when the headline
-              price and the payable amount don't match.
-            </p>
-            <button
-              onClick={() => setActive(trustBreakerTransaction)}
-              className="mt-4 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-red-900 transition hover:bg-white/90"
-            >
-              Preview with PAYTRACE
-            </button>
-          </div>
         </section>
 
         <section className="rise mt-8 grid gap-4 rounded-3xl glass p-4 sm:grid-cols-3">
