@@ -5,3 +5,9 @@
 [build.environment]
   NODE_VERSION = "22"
   NITRO_PRESET = "netlify"
+
+# SPA catch-all: serve index.html for all client-side routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
