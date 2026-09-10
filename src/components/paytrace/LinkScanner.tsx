@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { scanLink } from "@/lib/scan.functions";
 import type { TransactionPreview } from "@/lib/paytrace-data";
+
+// Falls back to same-origin so local dev and Lovable-hosted builds keep working.
+const BACKEND_URL = (import.meta.env["VITE_BACKEND_URL"] ?? "").replace(/\/+$/, "");
 
 const SCAN_STEPS = [
   "Fetching the page",
@@ -17,7 +18,6 @@ export function LinkScanner({
 }: {
   onReport: (t: TransactionPreview) => void;
 }) {
-  const run = useServerFn(scanLink);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
@@ -41,8 +41,14 @@ export function LinkScanner({
     setError(null);
     setLoading(true);
     try {
-      const report = await run({ data: { url: url.trim() } });
-      onReport(report as TransactionPreview);
+      const res = await fetch(`${BACKEND_URL}/api/public/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Scan failed (${res.status})`);
+      onReport(data as TransactionPreview);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "That link couldn't be scanned.",
